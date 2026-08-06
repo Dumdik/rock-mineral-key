@@ -9,6 +9,9 @@
   @media (prefers-color-scheme: dark){
     :root { --bg:#1a1917; --fg:#eee; --card:#26241f; --line:#3a372f; --accent:#c99b6a; --muted:#aaa; }
   }
+  /* explicit theme (artifact viewer toggle stamps data-theme; must win over the media query) */
+  :root[data-theme="light"] { --bg:#f7f6f3; --fg:#1c1b19; --card:#fff; --line:#ddd; --accent:#7a5c3e; --muted:#666; }
+  :root[data-theme="dark"]  { --bg:#1a1917; --fg:#eee; --card:#26241f; --line:#3a372f; --accent:#c99b6a; --muted:#aaa; }
   * { box-sizing:border-box; }
   body { margin:0; font:16px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--fg); }
   header { padding:16px; border-bottom:1px solid var(--line); }

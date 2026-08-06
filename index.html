@@ -21,7 +21,8 @@
   .field { margin-bottom:14px; }
   .field label { display:block; font-weight:600; font-size:13px; margin-bottom:4px; }
   .field small { color:var(--muted); font-weight:400; }
-  select, input[type=range] { width:100%; }
+  select, input[type=range], input[type=search] { width:100%; }
+  input[type=search] { padding:7px 9px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--fg); font-size:14px; }
   .hcheck { display:flex; gap:10px; align-items:center; margin:4px 0; font-size:14px; }
   button.reset { width:100%; padding:8px; margin-top:4px; background:var(--accent); color:#fff; border:0; border-radius:8px; cursor:pointer; font-size:14px; }
   .count { color:var(--muted); font-size:13px; margin:0 0 10px; }
@@ -31,9 +32,21 @@
   .props span { font-size:12px; background:var(--bg); border:1px solid var(--line); border-radius:20px; padding:2px 9px; }
   .note { font-size:13px; color:var(--muted); margin:0; }
   .disclaimer { font-size:12px; color:var(--muted); padding:0 16px 24px; max-width:700px; }
-  .tabs { margin-top:12px; display:flex; gap:6px; }
+  .tabs { margin-top:12px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
   .tab { padding:6px 16px; border:1px solid var(--line); background:var(--card); color:var(--fg); border-radius:8px 8px 0 0; cursor:pointer; font-size:14px; }
   .tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .capture { margin-left:auto; padding:6px 14px; border:1px solid var(--accent); color:var(--accent); border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; }
+  .capture:hover { background:var(--accent); color:#fff; }
+  /* reference photo in a card */
+  .thumb { display:block; position:relative; float:right; width:120px; margin:0 0 8px 12px; border-radius:8px; overflow:hidden; border:1px solid var(--line); text-decoration:none; }
+  .thumb img { display:block; width:100%; height:90px; object-fit:cover; background:var(--bg); }
+  .thumb .credit { display:block; font-size:9px; line-height:1.2; color:var(--muted); padding:2px 4px; background:var(--card); }
+  /* floating "your specimen" compare panel */
+  #specimen { position:fixed; right:16px; bottom:16px; width:180px; z-index:50; background:var(--card); border:2px solid var(--accent); border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,.3); overflow:hidden; }
+  .specimen-head { display:flex; justify-content:space-between; align-items:center; padding:4px 8px; font-size:12px; font-weight:600; background:var(--accent); color:#fff; }
+  .specimen-head button { background:none; border:0; color:#fff; cursor:pointer; font-size:14px; line-height:1; }
+  #specimenImg { display:block; width:100%; max-height:180px; object-fit:contain; background:var(--bg); }
+  .specimen-hint { font-size:10px; color:var(--muted); margin:0; padding:5px 8px; }
 </style>
 </head>
 <body>
@@ -43,11 +56,27 @@
   <div class="tabs" role="tablist">
     <button class="tab active" id="tabMinerals" role="tab" aria-selected="true">Minerals</button>
     <button class="tab" id="tabRocks" role="tab" aria-selected="false">Rocks</button>
+    <label class="capture" for="capture">📷 Capture specimen
+      <input type="file" accept="image/*" capture="environment" id="capture" hidden>
+    </label>
   </div>
 </header>
 
+<div id="specimen" hidden>
+  <div class="specimen-head">
+    <span>Your specimen</span>
+    <button id="specimenClear" title="Remove photo" aria-label="Remove photo">✕</button>
+  </div>
+  <img id="specimenImg" alt="Your captured specimen photo">
+  <p class="specimen-hint">Narrow the list with the physical tests, then eyeball-match against the reference photos. Photo ID is a hint — confirm with tests.</p>
+</div>
+
 <div class="wrap" id="mineralView">
   <aside class="filters">
+    <div class="field">
+      <label for="fSearch">Search <small>(name, color, notes)</small></label>
+      <input type="search" id="fSearch" placeholder="e.g. green, cubic, fizzes">
+    </div>
     <div class="field">
       <label for="hMin">Mohs hardness <small>(what it scratches)</small></label>
       <input type="range" id="hMin" min="1" max="10" step="0.5" value="1">
@@ -67,6 +96,19 @@
       <select id="fCleavage"><option value="">Any</option></select>
     </div>
     <div class="field">
+      <label for="fSG">Heft / specific gravity <small>(how heavy for its size)</small></label>
+      <select id="fSG">
+        <option value="">Any</option>
+        <option value="light">Light (SG &lt; 2.5)</option>
+        <option value="medium">Medium (SG 2.5–4)</option>
+        <option value="heavy">Heavy (SG &gt; 4)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="fSystem">Crystal system <small>(if crystals visible)</small></label>
+      <select id="fSystem"><option value="">Any</option></select>
+    </div>
+    <div class="field">
       <label>Special tests</label>
       <div class="hcheck"><input type="checkbox" id="fMag"><label for="fMag" style="margin:0;font-weight:400">Magnetic</label></div>
       <div class="hcheck"><input type="checkbox" id="fAcid"><label for="fAcid" style="margin:0;font-weight:400">Fizzes in acid (HCl)</label></div>
@@ -82,6 +124,10 @@
 
 <div class="wrap" id="rockView" hidden>
   <aside class="filters">
+    <div class="field">
+      <label for="rSearch">Search <small>(name, minerals, features)</small></label>
+      <input type="search" id="rSearch" placeholder="e.g. fizzes, floats, banded, quartz">
+    </div>
     <div class="field">
       <label for="rClass">Rock class</label>
       <select id="rClass"><option value="">Any</option></select>
@@ -109,6 +155,23 @@
 </p>
 
 <script src="minerals.js"></script>
+<script src="images.js"></script>
+<script>
+  // images.js may be absent/partial; guard so the app still runs without it.
+  window.IMAGES = window.IMAGES || {};
+  // IMAGES is machine-generated from external Wikimedia data (author/license strings),
+  // so treat it as untrusted: escape text, allow only http(s) URLs.
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const safeUrl = u => /^https?:\/\//i.test(u) ? u : "";
+  function thumbHtml(name) {
+    const im = IMAGES[name];
+    if (!im) return "";
+    return `<a class="thumb" href="${esc(safeUrl(im.page))}" target="_blank" rel="noopener">
+      <img src="${esc(safeUrl(im.img))}" alt="Reference photo of ${esc(name)}" loading="lazy">
+      <span class="credit">${esc(im.credit)} · ${esc(im.license)}</span>
+    </a>`;
+  }
+</script>
 <script>
   const $ = id => document.getElementById(id);
 
@@ -116,13 +179,16 @@
   STREAKS.forEach(s => $("fStreak").add(new Option(s, s)));
   LUSTERS.forEach(l => $("fLuster").add(new Option(l, l)));
   CLEAVAGES.forEach(c => $("fCleavage").add(new Option(c, c)));
+  SYSTEMS.forEach(s => $("fSystem").add(new Option(s, s)));
 
   function render() {
     let hMin = parseFloat($("hMin").value), hMax = parseFloat($("hMax").value);
     if (hMin > hMax) [hMin, hMax] = [hMax, hMin];
     $("hLabel").textContent = `Showing hardness ${hMin}–${hMax}`;
     const streak = $("fStreak").value, luster = $("fLuster").value,
-          cleavage = $("fCleavage").value, mag = $("fMag").checked, acid = $("fAcid").checked;
+          cleavage = $("fCleavage").value, mag = $("fMag").checked, acid = $("fAcid").checked,
+          system = $("fSystem").value, sg = $("fSG").value,
+          terms = $("fSearch").value.toLowerCase().split(/\s+/).filter(Boolean);
 
     const matches = MINERALS.filter(m => {
       // Hardness ranges overlap?
@@ -130,14 +196,25 @@
       if (streak && m.streak !== streak) return false;
       if (luster && m.luster !== luster) return false;
       if (cleavage && m.cleavage !== cleavage) return false;
+      if (system && m.system !== system) return false;
       if (mag && !m.magnetic) return false;
       if (acid && !m.acid) return false;
+      // SG band, using range overlap so borderline specimens still show
+      if (sg === "light" && !(m.sgMin < 2.5)) return false;
+      if (sg === "medium" && !(m.sgMax >= 2.5 && m.sgMin <= 4)) return false;
+      if (sg === "heavy" && !(m.sgMax > 4)) return false;
+      // Free-text: every term must appear somewhere in the record
+      if (terms.length) {
+        const hay = `${m.name} ${m.colors} ${m.note} ${m.streak} ${m.luster} ${m.system}`.toLowerCase();
+        if (!terms.every(t => hay.includes(t))) return false;
+      }
       return true;
     });
 
     $("count").textContent = `${matches.length} of ${MINERALS.length} minerals match`;
     $("list").innerHTML = matches.map(m => `
       <div class="card">
+        ${thumbHtml(m.name)}
         <h3>${m.name}</h3>
         <div class="props">
           <span>H ${m.hardnessMin}${m.hardnessMax !== m.hardnessMin ? "–"+m.hardnessMax : ""}</span>
@@ -156,7 +233,8 @@
   $("mineralView").querySelectorAll("select,input").forEach(el => el.addEventListener("input", render));
   $("reset").addEventListener("click", () => {
     $("hMin").value = 1; $("hMax").value = 10;
-    $("fStreak").value = $("fLuster").value = $("fCleavage").value = "";
+    $("fStreak").value = $("fLuster").value = $("fCleavage").value = $("fSystem").value = $("fSG").value = "";
+    $("fSearch").value = "";
     $("fMag").checked = $("fAcid").checked = false;
     render();
   });
@@ -168,12 +246,22 @@
   ROCK_GRAINS.forEach(g => $("rGrain").add(new Option(g, g)));
 
   function renderRocks() {
-    const cls = $("rClass").value, subtype = $("rSubtype").value, grain = $("rGrain").value;
-    const matches = ROCKS.filter(r =>
-      (!cls || r.cls === cls) && (!subtype || r.subtype === subtype) && (!grain || r.grain === grain));
+    const cls = $("rClass").value, subtype = $("rSubtype").value, grain = $("rGrain").value,
+          terms = $("rSearch").value.toLowerCase().split(/\s+/).filter(Boolean);
+    const matches = ROCKS.filter(r => {
+      if (cls && r.cls !== cls) return false;
+      if (subtype && r.subtype !== subtype) return false;
+      if (grain && r.grain !== grain) return false;
+      if (terms.length) {
+        const hay = `${r.name} ${r.cls} ${r.subtype} ${r.grain} ${r.composition} ${r.colors} ${r.note}`.toLowerCase();
+        if (!terms.every(t => hay.includes(t))) return false;
+      }
+      return true;
+    });
     $("rCount").textContent = `${matches.length} of ${ROCKS.length} rocks match`;
     $("rList").innerHTML = matches.map(r => `
       <div class="card">
+        ${thumbHtml(r.name)}
         <h3>${r.name}</h3>
         <div class="props">
           <span>${r.cls}</span>
@@ -183,9 +271,10 @@
         <p class="note"><strong>Made of:</strong> ${r.composition}. <strong>Colors:</strong> ${r.colors}. ${r.note}</p>
       </div>`).join("") || "<p>No rocks match. Loosen a filter.</p>";
   }
-  $("rockView").querySelectorAll("select").forEach(el => el.addEventListener("input", renderRocks));
+  $("rockView").querySelectorAll("select,input").forEach(el => el.addEventListener("input", renderRocks));
   $("rReset").addEventListener("click", () => {
     $("rClass").value = $("rSubtype").value = $("rGrain").value = "";
+    $("rSearch").value = "";
     renderRocks();
   });
   renderRocks();
@@ -201,6 +290,23 @@
   }
   $("tabMinerals").addEventListener("click", () => showTab(false));
   $("tabRocks").addEventListener("click", () => showTab(true));
+
+  // --- Camera capture / compare ---
+  let specimenUrl = null;
+  $("capture").addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (specimenUrl) URL.revokeObjectURL(specimenUrl);  // free the previous photo
+    specimenUrl = URL.createObjectURL(file);
+    $("specimenImg").src = specimenUrl;
+    $("specimen").hidden = false;
+  });
+  $("specimenClear").addEventListener("click", () => {
+    if (specimenUrl) { URL.revokeObjectURL(specimenUrl); specimenUrl = null; }
+    $("specimen").hidden = true;
+    $("capture").value = "";  // allow re-selecting the same file
+  });
+  window.addEventListener("beforeunload", () => { if (specimenUrl) URL.revokeObjectURL(specimenUrl); });
 </script>
 </body>
 </html>

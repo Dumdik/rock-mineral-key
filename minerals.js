@@ -172,6 +172,7 @@ const MINERALS = [
 const STREAKS = [...new Set(MINERALS.map(m => m.streak).filter(Boolean))].sort();
 const LUSTERS = [...new Set(MINERALS.map(m => m.luster))].sort();
 const CLEAVAGES = ["none", "poor", "one", "two", "three", "four", "six"];
+const SYSTEMS = [...new Set(MINERALS.map(m => m.system))].sort();
 
 // Rocks are identified by texture + composition + class, NOT by streak/hardness/
 // cleavage (those are mineral properties). Separate schema on purpose.

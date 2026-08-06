@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rock &amp; Mineral Key (FOSS)</title>
+<style>
+  :root { --bg:#f7f6f3; --fg:#1c1b19; --card:#fff; --line:#ddd; --accent:#7a5c3e; --muted:#666; }
+  @media (prefers-color-scheme: dark){
+    :root { --bg:#1a1917; --fg:#eee; --card:#26241f; --line:#3a372f; --accent:#c99b6a; --muted:#aaa; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--fg); }
+  header { padding:16px; border-bottom:1px solid var(--line); }
+  header h1 { margin:0 0 4px; font-size:20px; }
+  header p { margin:0; color:var(--muted); font-size:13px; }
+  .wrap { display:flex; flex-wrap:wrap; gap:16px; padding:16px; align-items:flex-start; }
+  .wrap[hidden] { display:none; }  /* display:flex above overrides the plain [hidden] rule */
+  .filters { flex:1 1 260px; max-width:340px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; position:sticky; top:16px; }
+  .results { flex:2 1 420px; }
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-weight:600; font-size:13px; margin-bottom:4px; }
+  .field small { color:var(--muted); font-weight:400; }
+  select, input[type=range] { width:100%; }
+  .hcheck { display:flex; gap:10px; align-items:center; margin:4px 0; font-size:14px; }
+  button.reset { width:100%; padding:8px; margin-top:4px; background:var(--accent); color:#fff; border:0; border-radius:8px; cursor:pointer; font-size:14px; }
+  .count { color:var(--muted); font-size:13px; margin:0 0 10px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:10px; }
+  .card h3 { margin:0 0 6px; font-size:17px; }
+  .props { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 8px; }
+  .props span { font-size:12px; background:var(--bg); border:1px solid var(--line); border-radius:20px; padding:2px 9px; }
+  .note { font-size:13px; color:var(--muted); margin:0; }
+  .disclaimer { font-size:12px; color:var(--muted); padding:0 16px 24px; max-width:700px; }
+  .tabs { margin-top:12px; display:flex; gap:6px; }
+  .tab { padding:6px 16px; border:1px solid var(--line); background:var(--card); color:var(--fg); border-radius:8px 8px 0 0; cursor:pointer; font-size:14px; }
+  .tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Rock &amp; Mineral Diagnostic Key</h1>
+  <p>Filter by the physical tests you can do. Facts from open sources (RRUFF, IMA, standard references). No photos, no login, works offline.</p>
+  <div class="tabs" role="tablist">
+    <button class="tab active" id="tabMinerals" role="tab" aria-selected="true">Minerals</button>
+    <button class="tab" id="tabRocks" role="tab" aria-selected="false">Rocks</button>
+  </div>
+</header>
+
+<div class="wrap" id="mineralView">
+  <aside class="filters">
+    <div class="field">
+      <label for="hMin">Mohs hardness <small>(what it scratches)</small></label>
+      <input type="range" id="hMin" min="1" max="10" step="0.5" value="1">
+      <input type="range" id="hMax" min="1" max="10" step="0.5" value="10">
+      <div id="hLabel" style="font-size:13px;color:var(--muted)"></div>
+    </div>
+    <div class="field">
+      <label for="fStreak">Streak <small>(color of powder)</small></label>
+      <select id="fStreak"><option value="">Any</option></select>
+    </div>
+    <div class="field">
+      <label for="fLuster">Luster</label>
+      <select id="fLuster"><option value="">Any</option></select>
+    </div>
+    <div class="field">
+      <label for="fCleavage">Cleavage <small>(flat break directions)</small></label>
+      <select id="fCleavage"><option value="">Any</option></select>
+    </div>
+    <div class="field">
+      <label>Special tests</label>
+      <div class="hcheck"><input type="checkbox" id="fMag"><label for="fMag" style="margin:0;font-weight:400">Magnetic</label></div>
+      <div class="hcheck"><input type="checkbox" id="fAcid"><label for="fAcid" style="margin:0;font-weight:400">Fizzes in acid (HCl)</label></div>
+    </div>
+    <button class="reset" id="reset">Reset filters</button>
+  </aside>
+
+  <main class="results">
+    <p class="count" id="count"></p>
+    <div id="list"></div>
+  </main>
+</div>
+
+<div class="wrap" id="rockView" hidden>
+  <aside class="filters">
+    <div class="field">
+      <label for="rClass">Rock class</label>
+      <select id="rClass"><option value="">Any</option></select>
+    </div>
+    <div class="field">
+      <label for="rSubtype">Subtype</label>
+      <select id="rSubtype"><option value="">Any</option></select>
+    </div>
+    <div class="field">
+      <label for="rGrain">Grain / texture</label>
+      <select id="rGrain"><option value="">Any</option></select>
+    </div>
+    <button class="reset" id="rReset">Reset filters</button>
+  </aside>
+  <main class="results">
+    <p class="count" id="rCount"></p>
+    <div id="rList"></div>
+  </main>
+</div>
+
+<p class="disclaimer">
+  <strong>This is a suggestion tool, not a determination.</strong> Hand-specimen ID of raw rocks is
+  inherently uncertain — color is unreliable, polymorphs need lab tests (XRD), and even experts
+  can't ID many species by eye. Always confirm with multiple physical tests. FOSS / open data.
+</p>
+
+<script src="minerals.js"></script>
+<script>
+  const $ = id => document.getElementById(id);
+
+  // Populate dropdowns from data.
+  STREAKS.forEach(s => $("fStreak").add(new Option(s, s)));
+  LUSTERS.forEach(l => $("fLuster").add(new Option(l, l)));
+  CLEAVAGES.forEach(c => $("fCleavage").add(new Option(c, c)));
+
+  function render() {
+    let hMin = parseFloat($("hMin").value), hMax = parseFloat($("hMax").value);
+    if (hMin > hMax) [hMin, hMax] = [hMax, hMin];
+    $("hLabel").textContent = `Showing hardness ${hMin}–${hMax}`;
+    const streak = $("fStreak").value, luster = $("fLuster").value,
+          cleavage = $("fCleavage").value, mag = $("fMag").checked, acid = $("fAcid").checked;
+
+    const matches = MINERALS.filter(m => {
+      // Hardness ranges overlap?
+      if (m.hardnessMax < hMin || m.hardnessMin > hMax) return false;
+      if (streak && m.streak !== streak) return false;
+      if (luster && m.luster !== luster) return false;
+      if (cleavage && m.cleavage !== cleavage) return false;
+      if (mag && !m.magnetic) return false;
+      if (acid && !m.acid) return false;
+      return true;
+    });
+
+    $("count").textContent = `${matches.length} of ${MINERALS.length} minerals match`;
+    $("list").innerHTML = matches.map(m => `
+      <div class="card">
+        <h3>${m.name}</h3>
+        <div class="props">
+          <span>H ${m.hardnessMin}${m.hardnessMax !== m.hardnessMin ? "–"+m.hardnessMax : ""}</span>
+          <span>streak: ${m.streak || "pale"}</span>
+          <span>${m.luster}</span>
+          <span>cleavage: ${m.cleavage}</span>
+          <span>SG ${m.sgMin}${m.sgMax !== m.sgMin ? "–"+m.sgMax : ""}</span>
+          ${m.magnetic ? "<span>magnetic</span>" : ""}
+          ${m.acid ? "<span>fizzes in acid</span>" : ""}
+          <span>${m.system}</span>
+        </div>
+        <p class="note"><strong>Colors:</strong> ${m.colors}. ${m.note}</p>
+      </div>`).join("") || "<p>No minerals match these tests. Loosen a filter.</p>";
+  }
+
+  $("mineralView").querySelectorAll("select,input").forEach(el => el.addEventListener("input", render));
+  $("reset").addEventListener("click", () => {
+    $("hMin").value = 1; $("hMax").value = 10;
+    $("fStreak").value = $("fLuster").value = $("fCleavage").value = "";
+    $("fMag").checked = $("fAcid").checked = false;
+    render();
+  });
+  render();
+
+  // --- Rocks view ---
+  ROCK_CLASSES.forEach(c => $("rClass").add(new Option(c, c)));
+  ROCK_SUBTYPES.forEach(s => $("rSubtype").add(new Option(s, s)));
+  ROCK_GRAINS.forEach(g => $("rGrain").add(new Option(g, g)));
+
+  function renderRocks() {
+    const cls = $("rClass").value, subtype = $("rSubtype").value, grain = $("rGrain").value;
+    const matches = ROCKS.filter(r =>
+      (!cls || r.cls === cls) && (!subtype || r.subtype === subtype) && (!grain || r.grain === grain));
+    $("rCount").textContent = `${matches.length} of ${ROCKS.length} rocks match`;
+    $("rList").innerHTML = matches.map(r => `
+      <div class="card">
+        <h3>${r.name}</h3>
+        <div class="props">
+          <span>${r.cls}</span>
+          <span>${r.subtype}</span>
+          <span>grain: ${r.grain}</span>
+        </div>
+        <p class="note"><strong>Made of:</strong> ${r.composition}. <strong>Colors:</strong> ${r.colors}. ${r.note}</p>
+      </div>`).join("") || "<p>No rocks match. Loosen a filter.</p>";
+  }
+  $("rockView").querySelectorAll("select").forEach(el => el.addEventListener("input", renderRocks));
+  $("rReset").addEventListener("click", () => {
+    $("rClass").value = $("rSubtype").value = $("rGrain").value = "";
+    renderRocks();
+  });
+  renderRocks();
+
+  // --- Tab switching ---
+  function showTab(rocks) {
+    $("mineralView").hidden = rocks;
+    $("rockView").hidden = !rocks;
+    $("tabRocks").classList.toggle("active", rocks);
+    $("tabMinerals").classList.toggle("active", !rocks);
+    $("tabRocks").setAttribute("aria-selected", rocks);
+    $("tabMinerals").setAttribute("aria-selected", !rocks);
+  }
+  $("tabMinerals").addEventListener("click", () => showTab(false));
+  $("tabRocks").addEventListener("click", () => showTab(true));
+</script>
+</body>
+</html>

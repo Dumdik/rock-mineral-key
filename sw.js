@@ -1,7 +1,7 @@
 // Service worker: makes the app installable and work offline.
 // Cache-first for the app shell; also runtime-caches Wikimedia reference photos
 // so they persist offline after being viewed once.
-const CACHE = "rockkey-v2";
+const CACHE = "rockkey-v3";
 const SHELL = [
   "./", "./index.html", "./minerals.js", "./images.js",
   "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png",

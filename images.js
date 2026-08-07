@@ -1104,5 +1104,17 @@ const IMAGES = {
   "license": "CC BY 2.0",
   "credit": "James St. John",
   "page": "https://commons.wikimedia.org/wiki/File:Ferruginous_quartz-pebble_conglomerate_(derived_from_boulder_in_%22Sharon_Conglomerate%22,_Lower_Pennsylvanian;_Jackson_North_roadcut,_Ohio,_USA)_30.jpg"
+ },
+ "Augite (Pyroxene)": {
+  "img": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Augite_Rwanda.jpg/500px-Augite_Rwanda.jpg",
+  "license": "CC BY-SA 4.0",
+  "credit": "Didier Descouens",
+  "page": "https://commons.wikimedia.org/wiki/File:Augite_Rwanda.jpg"
+ },
+ "Zoisite": {
+  "img": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Zoisite-224734.jpg/500px-Zoisite-224734.jpg",
+  "license": "CC BY-SA 3.0",
+  "credit": "Robert M. Lavinsky",
+  "page": "https://commons.wikimedia.org/wiki/File:Zoisite-224734.jpg"
  }
 };

@@ -174,6 +174,20 @@ const LUSTERS = [...new Set(MINERALS.map(m => m.luster))].sort();
 const CLEAVAGES = ["none", "poor", "one", "two", "three", "four", "six"];
 const SYSTEMS = [...new Set(MINERALS.map(m => m.system))].sort();
 
+// Extra granular physical-test tags, hand-curated for accuracy (regex-scanning
+// note text gives false positives, e.g. "basalt" contains "salt"). Tag -> the
+// minerals where it is genuinely true. Attached to each record as m.tests.
+const MINERAL_TESTS = {
+  "fluorescent (UV)": ["Fluorite", "Calcite", "Aragonite", "Scheelite", "Willemite", "Autunite", "Scapolite", "Fluorapatite", "Adamite", "Benitoite", "Chondrodite", "Sodalite"],
+  "radioactive": ["Uraninite", "Autunite"],
+  "greasy/soapy feel": ["Talc", "Graphite", "Molybdenite", "Serpentine", "Antigorite (Serpentine)", "Chlorite", "Brucite"],
+  "flexible/elastic sheets": ["Muscovite Mica", "Biotite Mica", "Lepidolite", "Chlorite", "Brucite"],
+  "salty taste": ["Halite"],
+  "conchoidal fracture": ["Quartz", "Chalcedony", "Opal", "Tigereye (Quartz)"],
+};
+MINERALS.forEach(m => { m.tests = Object.keys(MINERAL_TESTS).filter(t => MINERAL_TESTS[t].includes(m.name)); });
+const TESTS = Object.keys(MINERAL_TESTS);
+
 // Rocks are identified by texture + composition + class, NOT by streak/hardness/
 // cleavage (those are mineral properties). Separate schema on purpose.
 //

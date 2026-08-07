@@ -36,6 +36,7 @@
   .card h3 { margin:0 0 6px; font-size:17px; }
   .props { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 8px; }
   .props span { font-size:12px; background:var(--bg); border:1px solid var(--line); border-radius:20px; padding:2px 9px; }
+  .props span.tag-prop { background:var(--accent); color:#fff; border-color:var(--accent); }
   .note { font-size:13px; color:var(--muted); margin:0; }
   .disclaimer { font-size:12px; color:var(--muted); padding:0 16px 24px; max-width:700px; }
   .tabs { margin-top:12px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
@@ -80,8 +81,8 @@
 <div class="wrap" id="mineralView">
   <aside class="filters">
     <div class="field">
-      <label for="fSearch">Search <small>(name, color, notes)</small></label>
-      <input type="search" id="fSearch" placeholder="e.g. green, cubic, fizzes">
+      <label for="fSearch">Describe it / search <small>(any property or word)</small></label>
+      <input type="search" id="fSearch" placeholder="e.g. conchoidal, greasy green, heavy black streak">
     </div>
     <div class="field">
       <label for="hMin">Mohs hardness <small>(what it scratches)</small></label>
@@ -118,6 +119,10 @@
       <label>Special tests</label>
       <div class="hcheck"><input type="checkbox" id="fMag"><label for="fMag" style="margin:0;font-weight:400">Magnetic</label></div>
       <div class="hcheck"><input type="checkbox" id="fAcid"><label for="fAcid" style="margin:0;font-weight:400">Fizzes in acid (HCl)</label></div>
+    </div>
+    <div class="field">
+      <label>Special properties <small>(check any)</small></label>
+      <div id="fTests"></div>
     </div>
     <button class="reset" id="reset">Reset filters</button>
   </aside>
@@ -186,6 +191,10 @@
   LUSTERS.forEach(l => $("fLuster").add(new Option(l, l)));
   CLEAVAGES.forEach(c => $("fCleavage").add(new Option(c, c)));
   SYSTEMS.forEach(s => $("fSystem").add(new Option(s, s)));
+  // build the special-property checkboxes from the curated tag list
+  $("fTests").innerHTML = TESTS.map((t, i) =>
+    `<div class="hcheck"><input type="checkbox" class="ftest" id="ft${i}" value="${t}"><label for="ft${i}" style="margin:0;font-weight:400">${t}</label></div>`
+  ).join("");
 
   function render() {
     let hMin = parseFloat($("hMin").value), hMax = parseFloat($("hMax").value);
@@ -194,7 +203,8 @@
     const streak = $("fStreak").value, luster = $("fLuster").value,
           cleavage = $("fCleavage").value, mag = $("fMag").checked, acid = $("fAcid").checked,
           system = $("fSystem").value, sg = $("fSG").value,
-          terms = $("fSearch").value.toLowerCase().split(/\s+/).filter(Boolean);
+          terms = $("fSearch").value.toLowerCase().split(/\s+/).filter(Boolean),
+          checkedTests = [...document.querySelectorAll(".ftest:checked")].map(c => c.value);
 
     const matches = MINERALS.filter(m => {
       // Hardness ranges overlap?
@@ -209,9 +219,11 @@
       if (sg === "light" && !(m.sgMin < 2.5)) return false;
       if (sg === "medium" && !(m.sgMax >= 2.5 && m.sgMin <= 4)) return false;
       if (sg === "heavy" && !(m.sgMax > 4)) return false;
-      // Free-text: every term must appear somewhere in the record
+      // Special properties: mineral must carry every checked tag
+      if (checkedTests.length && !checkedTests.every(t => m.tests.includes(t))) return false;
+      // Free-text: every term must appear somewhere in the record (all fields)
       if (terms.length) {
-        const hay = `${m.name} ${m.colors} ${m.note} ${m.streak} ${m.luster} ${m.system}`.toLowerCase();
+        const hay = `${m.name} ${m.colors} ${m.note} ${m.streak} ${m.luster} ${m.system} ${m.cleavage} cleavage h${m.hardnessMin}-${m.hardnessMax} sg${m.sgMin}-${m.sgMax} ${m.magnetic ? "magnetic" : ""} ${m.acid ? "fizzes acid effervescent" : ""} ${m.tests.join(" ")}`.toLowerCase();
         if (!terms.every(t => hay.includes(t))) return false;
       }
       return true;
@@ -231,6 +243,7 @@
           ${m.magnetic ? "<span>magnetic</span>" : ""}
           ${m.acid ? "<span>fizzes in acid</span>" : ""}
           <span>${m.system}</span>
+          ${m.tests.map(t => `<span class="tag-prop">${t}</span>`).join("")}
         </div>
         <p class="note"><strong>Colors:</strong> ${m.colors}. ${m.note}</p>
       </div>`).join("") || "<p>No minerals match these tests. Loosen a filter.</p>";
@@ -242,6 +255,7 @@
     $("fStreak").value = $("fLuster").value = $("fCleavage").value = $("fSystem").value = $("fSG").value = "";
     $("fSearch").value = "";
     $("fMag").checked = $("fAcid").checked = false;
+    document.querySelectorAll(".ftest").forEach(c => c.checked = false);
     render();
   });
   render();

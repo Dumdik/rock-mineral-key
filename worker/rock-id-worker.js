@@ -29,8 +29,11 @@ export default {
     if (!image || !Array.isArray(names) || !names.length) {
       return json({ error: "need { image, names[] }" }, 400);
     }
+    const OK_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!OK_TYPES.includes(mediaType)) return json({ error: "unsupported image type" }, 400);
     // strip a data-URL prefix if present; cap the candidate list defensively
     const data = String(image).replace(/^data:[^,]+,/, "");
+    if (data.length > 7_000_000) return json({ error: "image too large (max ~5MB)" }, 413); // base64 ~1.33x
     const candidates = names.slice(0, 300).map(String);
 
     const system =
@@ -91,8 +94,8 @@ export default {
     });
 
     if (!r.ok) {
-      const detail = await r.text();
-      return json({ error: "upstream", status: r.status, detail }, 502);
+      console.error("anthropic upstream error", r.status, await r.text()); // server-side only (wrangler tail)
+      return json({ error: "identification service failed" }, 502);        // no upstream detail to the client
     }
     const msg = await r.json();
     // structured output guarantees the first text block is valid JSON matching the schema

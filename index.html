@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rock &amp; Mineral Key (FOSS)</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#7a5c3e">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
   :root { --bg:#f7f6f3; --fg:#1c1b19; --card:#fff; --line:#ddd; --accent:#7a5c3e; --muted:#666; }
   @media (prefers-color-scheme: dark){
@@ -310,6 +313,11 @@
     $("capture").value = "";  // allow re-selecting the same file
   });
   window.addEventListener("beforeunload", () => { if (specimenUrl) URL.revokeObjectURL(specimenUrl); });
+
+  // PWA: register the service worker (only fires in a secure context; harmless elsewhere)
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+  }
 </script>
 </body>
 </html>

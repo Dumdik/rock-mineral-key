@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- full-bleed warm ground so launcher masks (circle/squircle) still look right -->
+  <rect width="512" height="512" fill="#6b4f34"/>
+  <!-- stylized quartz point; facets kept inside the maskable safe zone (center ~80%) -->
+  <g>
+    <!-- prism body, two shaded facets -->
+    <polygon points="256,110 190,190 190,420 256,440" fill="#c3b3ec"/>
+    <polygon points="256,110 322,190 322,420 256,440" fill="#9a83d2"/>
+    <!-- terminating pyramid -->
+    <polygon points="256,110 190,190 256,190" fill="#ddd2f6"/>
+    <polygon points="256,110 322,190 256,190" fill="#b0a0e0"/>
+    <!-- center edge highlight -->
+    <line x1="256" y1="110" x2="256" y2="440" stroke="#f2ecff" stroke-width="4" stroke-opacity="0.6"/>
+    <line x1="190" y1="190" x2="322" y2="190" stroke="#4a3b73" stroke-width="3" stroke-opacity="0.5"/>
+  </g>
+</svg>

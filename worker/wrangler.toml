@@ -1,0 +1,6 @@
+name = "rock-id-worker"
+main = "rock-id-worker.js"
+compatibility_date = "2026-01-01"
+
+# ANTHROPIC_API_KEY is set as a secret, NOT here:
+#   wrangler secret put ANTHROPIC_API_KEY

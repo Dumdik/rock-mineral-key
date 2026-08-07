@@ -54,6 +54,19 @@
   .specimen-head button { background:none; border:0; color:#fff; cursor:pointer; font-size:14px; line-height:1; }
   #specimenImg { display:block; width:100%; max-height:180px; object-fit:contain; background:var(--bg); }
   .specimen-hint { font-size:10px; color:var(--muted); margin:0; padding:5px 8px; }
+  .identify-btn { display:block; width:calc(100% - 16px); margin:8px; padding:7px; background:var(--accent); color:#fff; border:0; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; }
+  .identify-btn:disabled { opacity:.6; cursor:progress; }
+  /* AI suggestions panel */
+  #aiResults { margin:0 16px 8px; background:var(--card); border:2px solid var(--accent); border-radius:10px; padding:12px 14px; }
+  .ai-head { display:flex; align-items:center; gap:6px; margin-bottom:8px; font-size:15px; }
+  .ai-head .ai-note { color:var(--muted); font-weight:400; font-size:12px; flex:1; }
+  .ai-head button { background:none; border:0; color:var(--muted); cursor:pointer; font-size:16px; }
+  .ai-cand { border-top:1px solid var(--line); padding:8px 0; }
+  .ai-cand:first-child { border-top:0; }
+  .ai-cand button.ai-name { background:none; border:0; color:var(--accent); font-weight:700; font-size:15px; cursor:pointer; padding:0; text-decoration:underline; }
+  .ai-cand .ai-conf { color:var(--muted); font-size:12px; margin-left:6px; }
+  .ai-cand p { margin:3px 0 0; font-size:13px; }
+  .ai-cand .ai-tests { color:var(--muted); }
 </style>
 </head>
 <body>
@@ -75,7 +88,16 @@
     <button id="specimenClear" title="Remove photo" aria-label="Remove photo">✕</button>
   </div>
   <img id="specimenImg" alt="Your captured specimen photo">
+  <button id="identify" class="identify-btn">🔍 Identify with AI</button>
   <p class="specimen-hint">Narrow the list with the physical tests, then eyeball-match against the reference photos. Photo ID is a hint — confirm with tests.</p>
+</div>
+
+<div id="aiResults" hidden>
+  <div class="ai-head">
+    <strong>AI suggestions</strong> <span class="ai-note">— hints only, confirm with the tests below</span>
+    <button id="aiClose" aria-label="Close suggestions">✕</button>
+  </div>
+  <div id="aiList"></div>
 </div>
 
 <div class="wrap" id="mineralView">
@@ -312,21 +334,73 @@
   $("tabRocks").addEventListener("click", () => showTab(true));
 
   // --- Camera capture / compare ---
-  let specimenUrl = null;
+  // Paste your deployed Cloudflare Worker URL here to enable "Identify with AI".
+  const WORKER_URL = "";
+  const ALL_NAMES = [...MINERALS.map(m => m.name), ...ROCKS.map(r => r.name)];
+  const NAME_IS_ROCK = new Set(ROCKS.map(r => r.name));
+
+  let specimenUrl = null, specimenDataUrl = null, specimenType = "image/jpeg";
   $("capture").addEventListener("change", e => {
     const file = e.target.files[0];
     if (!file) return;
     if (specimenUrl) URL.revokeObjectURL(specimenUrl);  // free the previous photo
     specimenUrl = URL.createObjectURL(file);
+    specimenType = file.type || "image/jpeg";
     $("specimenImg").src = specimenUrl;
     $("specimen").hidden = false;
+    $("aiResults").hidden = true;
+    const reader = new FileReader();          // also keep a data URL for the AI call
+    reader.onload = () => { specimenDataUrl = reader.result; };
+    reader.readAsDataURL(file);
   });
   $("specimenClear").addEventListener("click", () => {
     if (specimenUrl) { URL.revokeObjectURL(specimenUrl); specimenUrl = null; }
+    specimenDataUrl = null;
     $("specimen").hidden = true;
+    $("aiResults").hidden = true;
     $("capture").value = "";  // allow re-selecting the same file
   });
   window.addEventListener("beforeunload", () => { if (specimenUrl) URL.revokeObjectURL(specimenUrl); });
+
+  // --- Identify with AI (via the Cloudflare Worker; results are suggestions only) ---
+  function jumpToSpecies(name) {
+    const rock = NAME_IS_ROCK.has(name);
+    showTab(rock);
+    if (rock) { $("rSearch").value = name; renderRocks(); }
+    else { $("fSearch").value = name; render(); }
+    $(rock ? "rockView" : "mineralView").scrollIntoView({ behavior: "smooth" });
+  }
+  $("identify").addEventListener("click", async () => {
+    if (!WORKER_URL) { alert("AI identify isn't set up yet — deploy the worker and set WORKER_URL in index.html (see worker/README.md)."); return; }
+    if (!specimenDataUrl) return;
+    const btn = $("identify");
+    btn.disabled = true; btn.textContent = "Analyzing…";
+    try {
+      const resp = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ image: specimenDataUrl, mediaType: specimenType, names: ALL_NAMES }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.results) throw new Error(data.error || "no results");
+      $("aiList").innerHTML = data.results.map(r => `
+        <div class="ai-cand">
+          <button class="ai-name" data-name="${esc(r.name)}">${esc(r.name)}</button>
+          <span class="ai-conf">${Math.round((r.confidence || 0) * 100)}% likely</span>
+          <p>${esc(r.reasoning || "")}</p>
+          <p class="ai-tests"><strong>Confirm:</strong> ${esc(r.confirm_tests || "")}</p>
+        </div>`).join("") || "<p>No confident matches. Use the physical-test filters.</p>";
+      $("aiList").querySelectorAll(".ai-name").forEach(b =>
+        b.addEventListener("click", () => jumpToSpecies(b.dataset.name)));
+      $("aiResults").hidden = false;
+      $("aiResults").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch (err) {
+      alert("Couldn't identify: " + err.message + "\nThe key + filters still work offline.");
+    } finally {
+      btn.disabled = false; btn.textContent = "🔍 Identify with AI";
+    }
+  });
+  $("aiClose").addEventListener("click", () => { $("aiResults").hidden = true; });
 
   // PWA: register the service worker (only fires in a secure context; harmless elsewhere)
   if ("serviceWorker" in navigator) {

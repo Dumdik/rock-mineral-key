@@ -17,12 +17,19 @@ function loadImages() {
   return h.v;
 }
 
-async function toDataUri(url) {
-  const r = await fetch(url, { headers: { "User-Agent": UA } });
-  if (!r.ok) throw new Error(r.status);
-  const type = r.headers.get("content-type") || "image/jpeg";
-  const buf = Buffer.from(await r.arrayBuffer());
-  return `data:${type};base64,${buf.toString("base64")}`;
+async function toDataUri(url, tries = 4) {
+  const clean = url.split("?")[0]; // drop tracking query (can trigger 400 on thumb handler)
+  for (let i = 0; i < tries; i++) {
+    const r = await fetch(clean, { headers: { "User-Agent": UA } });
+    if (r.ok) {
+      const type = r.headers.get("content-type") || "image/jpeg";
+      const buf = Buffer.from(await r.arrayBuffer());
+      return `data:${type};base64,${buf.toString("base64")}`;
+    }
+    if (r.status === 429) { await new Promise(res => setTimeout(res, 1500 * (i + 1))); continue; }
+    throw new Error(r.status);
+  }
+  throw new Error("429 (gave up)");
 }
 
 async function main() {
@@ -35,7 +42,7 @@ async function main() {
       inlined[name] = { ...images[name], img: await toDataUri(images[name].img) };
       ok++; process.stdout.write(".");
     } catch (e) { fail++; console.error(`\nskip ${name}: ${e.message}`); }
-    await new Promise(r => setTimeout(r, 60));
+    await new Promise(r => setTimeout(r, 250));
   }
   const imagesJs = "const IMAGES = " + JSON.stringify(inlined) + ";";
 
